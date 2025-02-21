@@ -45,8 +45,10 @@
             </div>
           </div>
         </div>
-        <el-button plain @click="loginDialogVisible = true" style="display: inline-block;">登录以查看个性化推荐……</el-button>
+        <el-button plain @click="openLoginDialog" style="display: inline-block;">登录以查看个性化推荐……</el-button>
       </div>
+      <!-- 使用封装好的 AuthDialog 组件 -->
+      <AuthDialog ref="authDialog" />
 
       <!-- 新游推荐 -->
       <div class="new-games">
@@ -143,9 +145,13 @@
 
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
+import AuthDialog from '@/components/AuthDialog.vue'
 
 export default {
   name: 'Home',
+  components: {
+    AuthDialog
+  },
   setup () {
     const isVisible = ref(false)
 
@@ -210,6 +216,14 @@ export default {
       img.onload = () => {
         image.loaded = true
       }
+    },
+    // 打开登录弹窗
+    openLoginDialog () {
+      this.$refs.authDialog.loginDialogVisible = true
+    },
+    // 打开注册弹窗
+    openRegisterDialog () {
+      this.$refs.authDialog.registerDialogVisible = true
     }
   },
   mounted () {

@@ -371,9 +371,9 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* WebKit 私有属性，限制显示两行 */
+  -webkit-line-clamp: 1; /* WebKit 私有属性，限制显示两行 */
   -webkit-box-orient: vertical;
-  line-clamp: 2; /* 标准属性，未来浏览器支持 */
+  line-clamp: 1; /* 标准属性，未来浏览器支持 */
   box-orient: vertical; /* 标准属性，未来浏览器支持 */
   transition: all 0.3s ease;
   /* opacity: 0; 默认隐藏 */
@@ -399,11 +399,11 @@ export default {
 .card:hover .game-description {
   opacity: 1; /* 显示描述 */
   height: auto; /* 高度自适应 */
-  -webkit-line-clamp: 1; /* unset取消行数限制 */
+  -webkit-line-clamp: 2; /* unset取消行数限制 */
   line-clamp: 1; /* 取消行数限制 */
 }
 .card:hover .download {
-  opacity: 1; /* 显示按钮 */
+  opacity: 2; /* 显示按钮 */
   transform: translateY(0); /* 取消移动 */
 }
 

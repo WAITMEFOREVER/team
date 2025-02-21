@@ -26,7 +26,8 @@
     </div>
     <!-- 右侧登录和注册 -->
     <div class="auth-buttons">
-      <el-button plain @click="loginDialogVisible = true" style="display: inline-block;">登 录/注 册</el-button>
+      <el-button @click="openLoginDialog">登录</el-button>
+      <el-button @click="openRegisterDialog">注册</el-button>
       <el-dropdown style="display: inline-block;margin-top: 10px;">
         <span class="el-dropdown-link">
           <el-avatar src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png"/>
@@ -46,70 +47,19 @@
       </el-dropdown>
     </div>
   </el-menu>
-
-  <!-- 登录弹窗 -->
-  <el-dialog
-    title="登录"
-    v-model="loginDialogVisible"
-    :before-close="handleClose"
-  >
-    <el-form>
-      <el-form-item label="用户名：">
-        <el-input v-model="loginForm.username" placeholder="请输入你的用户名"></el-input>
-      </el-form-item>
-      <el-form-item label="密码：">
-        <el-input type="password" v-model="loginForm.password" placeholder="请输入密码"></el-input>
-      </el-form-item>
-    </el-form>
-    <div class="textleft">
-      <el-button plain @click="loginDialogVisible = false, registerDialogVisible = true">还没账号，立即注册……</el-button>
-    </div>
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="loginDialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="handleLogin">登 录</el-button>
-      </div>
-    </template>
-  </el-dialog>
-
-  <!-- 注册弹窗 -->
-  <el-dialog
-    title="注册"
-    v-model="registerDialogVisible"
-    :before-close="handleClose"
-  >
-    <el-form>
-      <el-form-item label="用户名：">
-        <el-input v-model="registerForm.username" placeholder="请输入用户名"></el-input>
-      </el-form-item>
-      <el-form-item label="密码：">
-        <el-input type="password" v-model="registerForm.password" placeholder="请输入密码"></el-input>
-      </el-form-item>
-      <el-form-item label="确认密码：">
-        <el-input type="password" v-model="registerForm.confirmPassword" placeholder="确认您的密码"></el-input>
-      </el-form-item>
-      <el-form-item label="steamID：">
-        <el-input v-model="registerForm.steamID" placeholder="请输入你的steamID"></el-input>
-        <el-text type="info">*steamID：是唯一标识steam用户的id,例：“76561199281289196”</el-text>
-      </el-form-item>
-    </el-form>
-    <div class="textleft">
-      <el-button plain @click="loginDialogVisible = true, registerDialogVisible = false">已有账号，立即登录……</el-button>
-    </div>
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="registerDialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="handleRegister">注 册</el-button>
-      </div>
-    </template>
-  </el-dialog>
+<!-- 使用封装好的 AuthDialog 组件 -->
+<AuthDialog ref="authDialog" />
 </template>
 
 <script>
-import { ElMessageBox } from 'element-plus'
+// import { ElMessageBox } from 'element-plus'
+import AuthDialog from '@/components/AuthDialog.vue'
 
 export default {
   name: 'NavBar',
+  components: {
+    AuthDialog
+  },
   data () {
     return {
       activeIndex: '',
@@ -138,21 +88,13 @@ export default {
       // 切换语言的逻辑
       console.log(`切换语言为: ${this.selectedLanguage}`)
     },
-    handleClose (done) {
-      ElMessageBox.confirm('确定关闭吗？').then(() => {
-        done() // 确认后关闭 Dialog
-        console.info("点击右上角 'X'，取消按钮或遮罩层时触发")
-      }).catch(() => {
-        console.log('点击取消时触发')
-      })
+    // 打开登录弹窗
+    openLoginDialog () {
+      this.$refs.authDialog.loginDialogVisible = true
     },
-    handleLogin () {
-      console.log('Logging in:', this.loginForm)
-      this.loginDialogVisible = false // 关闭对话框
-    },
-    handleRegister () {
-      console.log('Registering:', this.registerForm)
-      this.registerDialogVisible = false// 关闭对话框
+    // 打开注册弹窗
+    openRegisterDialog () {
+      this.$refs.authDialog.registerDialogVisible = true
     }
   }
 }
@@ -223,10 +165,10 @@ export default {
   background-color: none;
 }
 
-.el-button {
-  margin-left: 10px;
+.el-button+.el-button{
+  margin-left: 0;
+  margin-right: 20px;
 }
-
 .textleft {
   text-align: center;
 }

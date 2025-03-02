@@ -22,27 +22,29 @@
     </div>
      <!-- 游戏排行榜 -->
      <div class="game-rank">
-      <h2>游戏下载排行榜</h2>
+      <h2>游戏热销榜</h2>
+      <div class="table-container">
       <table>
         <thead>
           <tr>
-            <th>排名</th>
+            <th>序号</th>
+            <th>图片</th>
             <th>游戏名称</th>
-            <th>评分</th>
+            <th>发布日期</th>
             <th>价格</th>
-            <th>类型</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(game, index) in topGames" :key="game.id">
             <td>{{ index + 1 }}</td>
-            <td>{{ game.name }}</td>
-            <td>{{ game.rating }}</td>
+            <td><img :src="game.image_url" alt=""></td>
+            <td><a :href="game.link" target="_blank">{{ game.title }}</a></td>
+            <td>{{ game.release_date }}</td>
             <td>{{ game.price }}</td>
-            <td>{{ game.genre }}</td>
           </tr>
         </tbody>
       </table>
+    </div>
     </div>
 
     <h2 style="padding: 20px;">游戏数据</h2>
@@ -70,6 +72,7 @@
 
 <script>
 import * as echarts from 'echarts'
+import axios from 'axios'
 
 export default {
   name: 'GameRatingChart',
@@ -94,7 +97,7 @@ export default {
     this.initHeatmapChart()
     this.initNetworkChart()
     // this.fetchUserData()// 获取用户数据
-    // this.fetchTopGames() // 获取游戏排行榜数据
+    this.fetchTopGames() // 获取游戏排行榜数据
     // 响应式处理
     window.addEventListener('resize', this.resizeCharts)
   },
@@ -447,6 +450,15 @@ export default {
       if (this.treeChart) this.treeChart.resize()
       if (this.heatmapChart) this.heatmapChart.resize()
       if (this.networkChart) this.networkChart.resize()
+    },
+    async fetchTopGames () {
+      try {
+        const response = await axios.get('http://127.0.0.1:5000/topgames')
+        this.topGames = response.data
+      } catch (error) {
+        console.error('获取游戏排行榜失败:', error)
+        console.error('错误详情:', error.response)
+      }
     }
   }
 }
@@ -487,13 +499,27 @@ export default {
   border-radius: 10px;
   margin-top: 20px;
 }
+h2 {
+  color: white;
+  margin-bottom: 15px;
+}
+
+.table-container {
+  max-height: 400px; /* 设置表格容器的最大高度 */
+  overflow-y: auto;  /* 允许垂直滚动 */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
+}
+thead th{
+  background-color: #626262;
 }
 th, td {
-  padding: 10px;
+  padding: 12px 15px;
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
@@ -501,10 +527,44 @@ th, td {
 
 th {
   background-color: rgba(255, 255, 255, 0.2);
+  position: sticky; /* 表头固定 */
+  top: 0;          /* 表头固定在顶部 */
+  z-index: 1;      /* 确保表头在最上层 */
 }
 
-h2, h3 {
-  color: white;
+td img {
+  width: 50px;
+  height: 50px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+a {
+  color: #42b983; /* 链接颜色 */
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 滚动条样式 */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 ul {

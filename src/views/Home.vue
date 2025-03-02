@@ -1,4 +1,4 @@
-<template>
+ <template>
   <div class="common-layout">
     <!-- 头部 -->
     <div class="header">
@@ -21,19 +21,18 @@
       <div class="hot-games">
         <h2>热门游戏</h2>
         <div class="card-container">
-          <div class="card" v-for="(game, index) in hotGames" :key="index">
-            <img :src="game.image" alt="Game Cover" class="card-image">
+          <div class="card" v-for="(game) in hotGame" :key="game.id">
+            <img :src="game.image_url" alt="Game Cover" class="card-image">
             <div class="card-content">
               <h3 class="game-title">{{ game.title }}</h3>
-              <p class="game-rating">类型: {{ game.type }} | 评分: {{ game.rating }}</p>
-              <button class="details-button">查看详情</button>
+              <button class="details-button"><a :href="game.link" style="color: white;">查看详情</a></button>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 个性化推荐 -->
-      <div class="personalized-recommendations">
+      <div v-if="user" class="personalized-recommendations">
         <h2>为你推荐</h2>
         <div class="card-container">
           <div class="card" v-for="(game, index) in personalizedGames" :key="index">
@@ -45,8 +44,9 @@
             </div>
           </div>
         </div>
-        <el-button plain @click="openLoginDialog" style="display: inline-block;">登录以查看个性化推荐……</el-button>
       </div>
+      <el-button v-else plain @click="openLoginDialog" style="display: inline-block;">登录以查看个性化推荐……</el-button>
+
       <!-- 使用封装好的 AuthDialog 组件 -->
       <AuthDialog ref="authDialog" />
 
@@ -146,11 +146,16 @@
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
 import AuthDialog from '@/components/AuthDialog.vue'
+import axios from 'axios'
+import { mapState } from 'vuex'
 
 export default {
   name: 'Home',
   components: {
     AuthDialog
+  },
+  computed: {
+    ...mapState(['user'])// 从 Vuex Store 中获取用户信息
   },
   setup () {
     const isVisible = ref(false)
@@ -188,10 +193,8 @@ export default {
         { src: 'https://img1.baidu.com/it/u=901797205,2696406556&fm=253&fmt=auto&app=120&f=JPEG?w=889&h=500', alt: 'Image 2', loaded: false },
         { src: 'https://img0.baidu.com/it/u=3527753816,2751857748&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500', alt: 'Image 3', loaded: false }
       ],
-      hotGames: [
-        { title: '游戏1', type: '动作', rating: '9/10', image: 'https://example.com/game1.jpg' },
-        { title: '游戏2', type: '冒险', rating: '8.5/10', image: 'https://example.com/game2.jpg' }
-      ],
+      hotGames: [], // 全部游戏数据
+      hotGame: [], // 随机选择的 18 个游戏
       personalizedGames: [
         { title: '游戏3', reason: '根据你喜欢的动作游戏推荐', image: 'https://example.com/game3.jpg' }
       ],
@@ -199,6 +202,9 @@ export default {
         { title: '游戏4', releaseDate: '2023-10-01', image: 'https://example.com/game4.jpg' }
       ]
     }
+  },
+  created () {
+    this.fetchHotTopGames()
   },
   methods: {
     subscribe () {
@@ -224,6 +230,28 @@ export default {
     // 打开注册弹窗
     openRegisterDialog () {
       this.$refs.authDialog.registerDialogVisible = true
+    },
+    async fetchHotTopGames () {
+      try {
+        const response = await axios.get('http://127.0.0.1:5000/topgames')
+        this.hotGames = response.data
+        this.getRandomGames() // 调用随机选择方法
+      } catch (error) {
+        console.error('获取游戏排行榜失败:', error)
+        console.error('错误详情:', error.response)
+      }
+    },
+    getRandomGames () {
+      // 从全部游戏数据中随机选择 18 个
+      this.hotGame = this.shuffleArray(this.hotGames).slice(0, 18)
+    },
+    shuffleArray (array) {
+      // 随机打乱数组
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]]
+      }
+      return array
     }
   },
   mounted () {

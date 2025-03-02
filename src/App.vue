@@ -7,10 +7,24 @@
 
 <script>
 import NavBar from './components/NavBar.vue'
+import { loadAuthData, clearAuthData } from '@/utils/storage'
 
 export default {
   components: {
     NavBar
+  },
+  created () {
+    const { user, token, expirationDate } = loadAuthData()
+
+    if (user && token && expirationDate > new Date().getTime()) {
+      // 自动登录
+      this.$store.commit('setUser', user)
+      this.$store.commit('setToken', token)
+    } else {
+      // 清除过期信息
+      clearAuthData()
+      this.$store.commit('clearUser')
+    }
   }
 }
 </script>

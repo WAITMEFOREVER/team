@@ -26,19 +26,26 @@
     </div>
     <!-- 右侧登录和注册 -->
     <div class="auth-buttons">
-      <el-button @click="openLoginDialog">登录</el-button>
-      <el-button @click="openRegisterDialog">注册</el-button>
-      <el-dropdown style="display: inline-block;margin-top: 10px;">
+      <div v-if="user" style="display: inline-block;margin-right: 20px;">
+      <span>欢迎{{ user.username }}！</span>
+    </div>
+      <div v-else style="display: inline-block;margin-right: 20px;flex:top;">
+        <el-button @click="openLoginDialog">登录</el-button>
+        <el-button @click="openRegisterDialog">注册</el-button>
+      </div>
+      <el-dropdown style="margin-top: 10px;">
         <span class="el-dropdown-link">
-          <el-avatar src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png"/>
+          <el-avatar :src="(user && user.avatar) || defaultAvatar"/>
           <el-icon class="el-icon--right">
             <arrow-down />
           </el-icon>
         </span>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item @click="loginDialogVisible = true">游客请登录…</el-dropdown-item>
+            <el-dropdown-item v-if="user" @click="handleLogout">退出登录</el-dropdown-item>
+            <el-dropdown-item v-else @click="openLoginDialog">游客请登录…</el-dropdown-item>
             <el-dropdown-item>我的游戏</el-dropdown-item>
+            <el-dropdown-item>个人中心</el-dropdown-item>
             <el-dropdown-item>消息提醒</el-dropdown-item>
             <el-dropdown-item>帮助与反馈</el-dropdown-item>
             <el-dropdown-item divided>设置</el-dropdown-item>
@@ -54,12 +61,20 @@
 <script>
 // import { ElMessageBox } from 'element-plus'
 import AuthDialog from '@/components/AuthDialog.vue'
+import { mapState } from 'vuex'
 
 export default {
   name: 'NavBar',
   components: {
     AuthDialog
   },
+  // actions: {
+  //   logout ({ commit }) {
+  //     commit('CLEAR_USER')
+  //     commit('SET_IS_LOGGED_IN', false)
+  //   // 其他清理操作，比如清除 token 等
+  //   }
+  // },
   data () {
     return {
       activeIndex: '',
@@ -83,6 +98,9 @@ export default {
       this.activeIndex = to.path
     }
   },
+  computed: {
+    ...mapState(['user'])// 从 Vuex Store 中获取用户信息
+  },
   methods: {
     changeLanguage () {
       // 切换语言的逻辑
@@ -95,6 +113,19 @@ export default {
     // 打开注册弹窗
     openRegisterDialog () {
       this.$refs.authDialog.registerDialogVisible = true
+    },
+    // 处理退出登录
+    handleLogout () {
+      // 清除本地存储的用户信息和 token
+      localStorage.removeItem('user')
+      localStorage.removeItem('token')
+
+      // 清除 Vuex 中的用户信息和 token
+      this.$store.commit('setUser', null)
+      this.$store.commit('setToken', null)
+
+      // 刷新页面，重新初始化应用状态
+      window.location.reload()
     }
   }
 }

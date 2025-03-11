@@ -45,7 +45,7 @@
             <el-dropdown-item v-if="user" @click="handleLogout">退出登录</el-dropdown-item>
             <el-dropdown-item v-else @click="openLoginDialog">游客请登录…</el-dropdown-item>
             <el-dropdown-item>我的游戏</el-dropdown-item>
-            <el-dropdown-item>个人中心</el-dropdown-item>
+            <el-dropdown-item @click.prevent="openProfile">个人中心</el-dropdown-item>
             <el-dropdown-item>消息提醒</el-dropdown-item>
             <el-dropdown-item>帮助与反馈</el-dropdown-item>
             <el-dropdown-item divided>设置</el-dropdown-item>
@@ -68,13 +68,7 @@ export default {
   components: {
     AuthDialog
   },
-  // actions: {
-  //   logout ({ commit }) {
-  //     commit('CLEAR_USER')
-  //     commit('SET_IS_LOGGED_IN', false)
-  //   // 其他清理操作，比如清除 token 等
-  //   }
-  // },
+
   data () {
     return {
       activeIndex: '',
@@ -102,6 +96,14 @@ export default {
     ...mapState(['user'])// 从 Vuex Store 中获取用户信息
   },
   methods: {
+    openProfile () {
+      const isLoggedIn = localStorage.getItem('token')
+      if (isLoggedIn) {
+        window.open('/profile', '_blank') // 在新标签页中打开个人中心
+      } else {
+        this.$message.warning('请先登录！') // 提示用户登录
+      }
+    },
     changeLanguage () {
       // 切换语言的逻辑
       console.log(`切换语言为: ${this.selectedLanguage}`)
@@ -202,5 +204,8 @@ export default {
 }
 .textleft {
   text-align: center;
+}
+el-dropdown-item el-dropdown-menu a:hover{
+  color:#409eff
 }
 </style>

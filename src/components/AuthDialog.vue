@@ -195,6 +195,7 @@ export default {
           const user = response.data.user
           const token = response.data.token
           const expirationDate = new Date().getTime() + 30 * 24 * 60 * 60 * 1000 // 30 天后
+          console.log(response.data) // 打印响应数据
 
           // 保存用户信息到 localStorage
           saveAuthData(user, token, expirationDate)

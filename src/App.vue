@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <NavBar />
+    <NavBar  v-if="$route.meta.showNavbar" />
     <router-view /> <!-- 这里是内容的展示区域，配合 Vue Router 使用 -->
   </div>
 </template>

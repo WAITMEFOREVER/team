@@ -54,12 +54,12 @@
       <div class="new-games">
         <h2>最新游戏</h2>
         <div class="card-container">
-          <div class="card" v-for="(game, index) in newGames" :key="index">
-            <img :src="game.image" alt="Game Cover" class="card-image">
+          <div class="card" v-for="(game) in latestGame" :key="game.id">
+            <img :src="game.image_url" alt="Game Cover" class="card-image">
             <div class="card-content">
               <h3 class="game-title">{{ game.title }}</h3>
-              <p class="game-rating">发行日期: {{ game.releaseDate }}</p>
-              <button class="details-button">查看详情</button>
+              <p class="game-rating">标签: {{ game.tags }}</p>
+              <button class="details-button"><a :href="game.link" style="color: white;">查看详情</a></button>
             </div>
           </div>
         </div>
@@ -74,9 +74,7 @@
       <router-link to="/services">
         <button>数据可视化</button>
       </router-link>
-      <router-link to="/profile">
-        <button>个人中心</button>
-      </router-link>
+        <button @click.prevent="openProfile">个人中心</button>
     </div>
 
     <!-- 页脚 -->
@@ -195,6 +193,8 @@ export default {
       ],
       hotGames: [], // 全部游戏数据
       hotGame: [], // 随机选择的 18 个游戏
+      latestGames: [], // 最新游戏数据
+      latestGame: [], // 随机选择的 18 个游戏
       personalizedGames: [
         { title: '游戏3', reason: '根据你喜欢的动作游戏推荐', image: 'https://example.com/game3.jpg' }
       ],
@@ -205,6 +205,7 @@ export default {
   },
   created () {
     this.fetchHotTopGames()
+    this.fetchLatestGames()
   },
   methods: {
     subscribe () {
@@ -215,6 +216,14 @@ export default {
       }
       alert(`感谢订阅！我们将发送最新推荐到: ${this.email}`)
       this.email = ''
+    },
+    openProfile () {
+      const isLoggedIn = localStorage.getItem('token')
+      if (isLoggedIn) {
+        window.open('/profile', '_blank') // 在新标签页中打开个人中心
+      } else {
+        this.$message.warning('请先登录！') // 提示用户登录
+      }
     },
     loadImage (image) {
       const img = new Image()
@@ -241,9 +250,24 @@ export default {
         console.error('错误详情:', error.response)
       }
     },
+    async fetchLatestGames () {
+      try {
+        const response = await axios.get('http://127.0.0.1:5000/latestgames')
+        this.latestGames = response.data
+        this.getRandomGames2()// 调用随机选择方法
+        console.log(this.latestGames)
+      } catch (error) {
+        console.error('获取最新游戏失败:', error)
+        console.error('错误详情:', error.response)
+      }
+    },
     getRandomGames () {
       // 从全部游戏数据中随机选择 18 个
       this.hotGame = this.shuffleArray(this.hotGames).slice(0, 18)
+    },
+    getRandomGames2 () {
+      // 从全部游戏数据中随机选择 18 个
+      this.latestGame = this.shuffleArray(this.latestGames).slice(0, 18)
     },
     shuffleArray (array) {
       // 随机打乱数组

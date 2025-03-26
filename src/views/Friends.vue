@@ -5,30 +5,25 @@
     <!-- 好友列表 -->
     <div class="friends-list">
       <h2>好友列表</h2>
-      <div v-if="friends.length > 0">
-      <div v-for="friend in friends" :key="friend.steamid" class="friend-item">
-        <img :src="friend.avatar" :alt="friend.name" class="friend-avatar" />
-        <div class="friend-info">
-          <p>{{ friend.name }}</p>
-          <a :href="friend.profile_url" target="_blank">查看资料</a>
+
+      <!-- 加载中 -->
+      <div v-if="loading">加载中...</div>
+
+      <!-- 好友列表 -->
+      <div v-else-if="friends.length > 0">
+        <div v-for="friend in friends" :key="friend.steamid" class="friend-item">
+          <img :src="friend.avatar" :alt="friend.nickname" class="friend-avatar" />
+          <div class="friend-info">
+            <p>{{ friend.nickname }}</p>
+            <!-- <a :href="friend.profile_url" target="_blank">查看资料</a> -->
+          </div>
         </div>
       </div>
-    </div>
-    <div v-else>
-      <p>暂无好友</p>
-    </div>
 
-    <h3>好友动态</h3>
-    <div v-if="friendActivity.length > 0">
-      <div v-for="activity in friendActivity" :key="activity.friend_id + activity.game.appid" class="activity-item">
-        <p>{{ activity.friend_id }} 最近玩过 {{ activity.game.name }}</p>
-        <p>动态: {{ activity.news.title }}</p>
-        <a :href="activity.news.url" target="_blank">查看详情</a>
+      <!-- 无好友 -->
+      <div v-else>
+        <p>暂无好友</p>
       </div>
-    </div>
-    <div v-else>
-      <p>暂无好友动态</p>
-    </div>
     </div>
   </div>
 </template>
@@ -41,29 +36,32 @@ export default {
   data () {
     return {
       friends: [], // 好友列表
-      friendActivity: [] // 好友动态列表
+      loading: true // 加载状态
     }
   },
   computed: {
-    ...mapState(['user']) // 将 Vuex 中的 user 映射到组件的计算属性
+    ...mapState(['user']) // 从 Vuex 获取用户信息
   },
   mounted () {
     this.fetchSteamFriends()
   },
   methods: {
     async fetchSteamFriends () {
-      const userId = this.user.id // 从用户数据中获取用户 ID
+      const userId = this.user.steam_id // 获取 Steam ID
+      this.loading = true // 开始加载
       axios.get(`http://127.0.0.1:5000/steam/friends/${userId}`)
         .then(response => {
           if (response.data.success) {
-            this.friends = response.data.friends // 保存好友列表
-            this.friendActivity = response.data.activity // 保存好友动态
+            this.friends = response.data.friends // 存储好友数据
           } else {
             console.error('获取好友列表失败:', response.data.message)
           }
         })
         .catch(error => {
           console.error('获取好友列表失败:', error)
+        })
+        .finally(() => {
+          this.loading = false // 结束加载
         })
     }
   }
@@ -89,19 +87,40 @@ h2 {
   color: #333;
 }
 
+.friends-list {
+  max-height: 400px; /* 固定高度 */
+  overflow-y: auto; /* 允许垂直滚动 */
+  scrollbar-width: none; /* 隐藏 Firefox 滚动条 */
+}
+
+.friends-list::-webkit-scrollbar {
+  display: none; /* 隐藏 Chrome/Safari 滚动条 */
+}
+
 .friend-item {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
 }
 
 .friend-avatar {
   width: 50px;
   height: 50px;
   margin-right: 10px;
+  border-radius: 50%;
 }
 
-.activity-item {
-  margin-bottom: 20px;
+.friend-info p {
+  margin: 0;
+}
+
+a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 </style>

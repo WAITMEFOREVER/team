@@ -9,7 +9,7 @@
       <!-- 轮播图 -->
       <el-carousel :interval="3000" arrow="always">
         <el-carousel-item v-for="(image, index) in images" :key="index">
-          <img :src="image.src" :alt="image.alt" v-if="image.loaded" />
+          <img :src="image.background_raw" :alt="image.alt" v-if="image.background_raw" @click="downloadGame(image.store_url)" style="width: 800px;height: auto;;"/>
           <div v-else class="image-placeholder">加载中...</div>
         </el-carousel-item>
       </el-carousel>
@@ -21,11 +21,15 @@
       <div class="hot-games">
         <h2>热门游戏</h2>
         <div class="card-container">
-          <div class="card" v-for="(game) in hotGame" :key="game.id">
+          <div
+          class="card"
+          v-for="(game) in hotGame" :key="game.id"
+          @click="goToGameDetail(game.game_id)">
             <img :src="game.image_url" alt="Game Cover" class="card-image">
             <div class="card-content">
               <h3 class="game-title">{{ game.title }}</h3>
-              <button class="details-button"><a :href="game.link" style="color: white;">查看详情</a></button>
+              <p class="game-rating">类型: {{ game.genre }}</p>
+              <button class="details-button" @click.stop="downloadGame (game.link)">立即下载</button>
             </div>
           </div>
         </div>
@@ -35,12 +39,14 @@
       <div v-if="user" class="personalized-recommendations">
         <h2>为你推荐</h2>
         <div class="card-container">
-          <div class="card" v-for="(game, index) in personalizedGames" :key="index">
-            <img :src="game.image" alt="Game Cover" class="card-image">
+          <div class="card" v-for="(game) in personalizedGame" :key="game.id"
+          @click="goToGameDetail(game.game_id)">
+            <img :src="game.image_url" alt="Game Cover" class="card-image">
             <div class="card-content">
-              <h3 class="game-title">{{ game.title }}</h3>
-              <p class="game-rating">推荐理由: {{ game.reason }}</p>
-              <button class="details-button">查看详情</button>
+              <h3 class="game-title">{{ game.name }}</h3>
+              <p class="game-rating">推荐人数: {{ game.total_reviews }}</p>
+              <p class="game-description">描述: {{ game.short_description }}</p>
+              <button class="details-button" @click.stop="downloadGame (game.store_url)">立即下载</button>
             </div>
           </div>
         </div>
@@ -54,12 +60,13 @@
       <div class="new-games">
         <h2>最新游戏</h2>
         <div class="card-container">
-          <div class="card" v-for="(game) in latestGame" :key="game.id">
+          <div class="card" v-for="(game) in latestGame" :key="game.id"
+          @click="goToGameDetail(game.game_id)">
             <img :src="game.image_url" alt="Game Cover" class="card-image">
             <div class="card-content">
               <h3 class="game-title">{{ game.title }}</h3>
-              <p class="game-rating">标签: {{ game.tags }}</p>
-              <button class="details-button"><a :href="game.link" style="color: white;">查看详情</a></button>
+              <p class="game-rating">类型: {{ game.tags }}</p>
+              <button class="details-button" @click.stop="downloadGame (game.link)">立即下载</button>
             </div>
           </div>
         </div>
@@ -153,7 +160,11 @@ export default {
     AuthDialog
   },
   computed: {
-    ...mapState(['user'])// 从 Vuex Store 中获取用户信息
+    ...mapState(['user']), // 从 Vuex Store 中获取用户信息
+    // 最大显示游戏数
+    maxGamesToShow () {
+      return this.gamesPerRow * 3// 计算最大显示游戏数（3 行）
+    }
   },
   setup () {
     const isVisible = ref(false)
@@ -192,20 +203,19 @@ export default {
         { src: 'https://img0.baidu.com/it/u=3527753816,2751857748&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500', alt: 'Image 3', loaded: false }
       ],
       hotGames: [], // 全部游戏数据
-      hotGame: [], // 随机选择的 18 个游戏
+      hotGame: [], // 随机选择3行的游戏数据
+      gamesPerRow: 6, // 每行游戏个数（默认）
       latestGames: [], // 最新游戏数据
       latestGame: [], // 随机选择的 18 个游戏
-      personalizedGames: [
-        { title: '游戏3', reason: '根据你喜欢的动作游戏推荐', image: 'https://example.com/game3.jpg' }
-      ],
-      newGames: [
-        { title: '游戏4', releaseDate: '2023-10-01', image: 'https://example.com/game4.jpg' }
-      ]
+      personalizedGames: [], // 个性化推荐游戏数据
+      personalizedGame: [] // 个性化推荐游戏数据
     }
   },
   created () {
     this.fetchHotTopGames()
     this.fetchLatestGames()
+    this.fetchRecommendedGames()
+    this.fetchCarousel()
   },
   methods: {
     subscribe () {
@@ -232,6 +242,15 @@ export default {
         image.loaded = true
       }
     },
+    // 跳转到游戏详情页
+    goToGameDetail (gameId) {
+      const routeData = this.$router.resolve({ name: 'GameDetail', params: { id: gameId } })
+      window.open(routeData.href, '_blank') // 在新标签页打开
+    },
+    // 打开游戏的下载链接
+    downloadGame (link) {
+      window.open(link, '_blank') // 打开游戏下载链接（在新标签页中）
+    },
     // 打开登录弹窗
     openLoginDialog () {
       this.$refs.authDialog.loginDialogVisible = true
@@ -240,11 +259,21 @@ export default {
     openRegisterDialog () {
       this.$refs.authDialog.registerDialogVisible = true
     },
+    async fetchCarousel () {
+      try {
+        const response = await axios.get('http://127.0.0.1:5000/carousel')
+        this.images = response.data
+        console.log(this.images)
+      } catch (error) {
+        console.error('获取轮播图失败:', error)
+      }
+    },
     async fetchHotTopGames () {
       try {
         const response = await axios.get('http://127.0.0.1:5000/topgames')
         this.hotGames = response.data
         this.getRandomGames() // 调用随机选择方法
+        console.log(this.hotGame)
       } catch (error) {
         console.error('获取游戏排行榜失败:', error)
         console.error('错误详情:', error.response)
@@ -255,31 +284,65 @@ export default {
         const response = await axios.get('http://127.0.0.1:5000/latestgames')
         this.latestGames = response.data
         this.getRandomGames2()// 调用随机选择方法
-        console.log(this.latestGames)
+        // console.log(this.latestGames)
       } catch (error) {
         console.error('获取最新游戏失败:', error)
         console.error('错误详情:', error.response)
       }
     },
+    async fetchRecommendedGames () {
+      try {
+        const steamId = this.user.steam_id
+        const response = await axios.get(`http://127.0.0.1:5000/recommend/${steamId}`)
+        this.personalizedGames = response.data.recommendations
+        this.getRandomGames3()// 调用随机选择方法
+        console.log(this.personalizedGames)
+      } catch (error) {
+        console.error('获取推荐游戏失败:', error)
+        console.error('错误详情:', error.response)
+      }
+    },
     getRandomGames () {
-      // 从全部游戏数据中随机选择 18 个
-      this.hotGame = this.shuffleArray(this.hotGames).slice(0, 18)
+      if (this.hotGames.length <= this.maxGamesToShow) {
+        this.hotGame = [...this.hotGames]
+      } else {
+        const shuffled = [...this.hotGames].sort(() => Math.random() - 0.5)
+        this.hotGame = shuffled.slice(0, this.maxGamesToShow)
+      }
+    },
+    // 计算当前屏幕每行能显示多少游戏
+    updateGamesPerRow () {
+      const cardWidth = 220 // 每张卡片宽度
+      const containerWidth = document.querySelector('.card-container')?.clientWidth || window.innerWidth
+      this.gamesPerRow = Math.max(1, Math.floor(containerWidth / cardWidth)) // 至少 1 个
+      this.getRandomGames() // 更新后重新随机选择
+      this.getRandomGames2() // 更新后重新随机选择
+      this.getRandomGames3() // 更新后重新随机选择
     },
     getRandomGames2 () {
-      // 从全部游戏数据中随机选择 18 个
-      this.latestGame = this.shuffleArray(this.latestGames).slice(0, 18)
-    },
-    shuffleArray (array) {
-      // 随机打乱数组
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]]
+      if (this.latestGames.length <= this.maxGamesToShow) {
+        this.latestGame = [...this.latestGames]
+      } else {
+        const shuffled = [...this.latestGames].sort(() => Math.random() - 0.5)
+        this.latestGame = shuffled.slice(0, this.maxGamesToShow)
       }
-      return array
+    },
+    getRandomGames3 () {
+      if (this.personalizedGames.length <= this.maxGamesToShow) {
+        this.personalizedGame = [...this.personalizedGames]
+      } else {
+        const shuffled = [...this.personalizedGames].sort(() => Math.random() - 0.5)
+        this.personalizedGame = shuffled.slice(0, this.maxGamesToShow)
+      }
     }
   },
   mounted () {
     this.images.forEach(image => this.loadImage(image))
+    this.updateGamesPerRow()
+    window.addEventListener('resize', this.updateGamesPerRow)
+  },
+  beforeUnmount () {
+    window.removeEventListener('resize', this.updateGamesPerRow)
   }
 }
 </script>
@@ -386,9 +449,31 @@ export default {
   background-color: #fff;
   transition: transform 0.3s ease;
 }
+/* 游戏描述 */
+.game-description {
+  font-size: 12px;
+  color: #aaa;
+  margin: 10px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* WebKit 私有属性，限制显示两行 */
+  -webkit-box-orient: vertical;
+  line-clamp: 1; /* 标准属性，未来浏览器支持 */
+  box-orient: vertical; /* 标准属性，未来浏览器支持 */
+  transition: all 0.3s ease;
+  /* opacity: 0; 默认隐藏 */
+}
 
 .card:hover {
   transform: translateY(-5px);
+}
+/* 鼠标悬停时显示描述和下载按钮 */
+.card:hover .game-description {
+  opacity: 1; /* 显示描述 */
+  height: auto; /* 高度自适应 */
+  -webkit-line-clamp: 2; /* unset取消行数限制 */
+  line-clamp: 1; /* 取消行数限制 */
 }
 
 /* 游戏封面图片 */
@@ -419,18 +504,26 @@ export default {
 
 /* 查看详情按钮 */
 .details-button {
-  background-color: #4CAF50;
+  width: 100%;
+  padding: 10px;
+  background-color: #67c23a;
   color: white;
   border: none;
   border-radius: 5px;
-  padding: 8px 16px;
-  font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+  opacity: 0; /* 默认隐藏 */
+  transform: translateY(20px); /* 默认向下移动 */
+  transition: all 0.3s ease;
 }
 
 .details-button:hover {
   background-color: #45a049;
+}
+.card:hover .details-button {
+  opacity: 2; /* 显示按钮 */
+  transform: translateY(0); /* 取消移动 */
 }
 /* 按钮 */
 .quick-access {

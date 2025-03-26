@@ -7,8 +7,8 @@
         <td><strong>用户头像</strong></td>
         <td>
           <div class="avatar-section">
-            <img :src="user_data.avatar" alt="头像" class="avatar" @click="triggerAvatarInput" />
-            <input type="file" ref="avatarInput" @change="handleAvatarChange" accept="image/*" style="display: none;" />
+            <img :src="user_data.avatar || defaultAvatar" alt="头像"  class="avatar" @click="triggerAvatarInput" />
+            <input type="file" ref="avatarInput" @change="uploadFile" accept="image/*" style="display: none;"/>
             <img v-if="previewAvatar" :src="previewAvatar" class="avatar-preview" style="display: none;" />
             <p class="avatar-hint">点击头像上传新照片</p>
           </div>
@@ -126,12 +126,36 @@ export default {
     this.fetchUserData()
   },
   methods: {
+    async uploadFile (event) {
+      const file = event.target.files[0]
+      if (!file) return
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('user_id', this.user.id) // 传递用户名
+      console.log(this.user.id)
+
+      try {
+        const response = await axios.post('http://127.0.0.1:5000/upload_avatar', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        console.log('上传成功，头像 URL:', response.data.url)
+        this.user_data.avatar = response.data.url // 更新头像 URL
+      } catch (error) {
+        console.error('上传失败', error)
+      }
+    },
+    async fetchUserAvatar () {
+      const response = await axios.get(`http://127.0.0.1:5000/get_user_avatar?user_id=${this.user.id}`)
+      this.user_data.avatar = response.data.avatar
+    },
     fetchUserData () {
       const userId = this.user.id // 从 Vuex 中获取用户 ID
+      this.fetchUserAvatar() // 获取用户头像
       axios.get(`http://127.0.0.1:5000/user/${userId}`)
         .then(response => {
           this.user_data = response.data.user
-          console.log(this.user_data)
+          // console.log(this.user_data)
         })
         .catch(error => {
           console.error('获取用户信息失败:', error)

@@ -4,10 +4,9 @@
     <div class="left-section">
       <div class="profile-header">
         <div class="user-info">
-          <img :src="user.avatar" alt="头像" class="avatar" />
+          <img :src="avatar || defaultAvatar" alt="头像" class="avatar" />
           <div class="user-details">
-            <h2>{{ user.name }}</h2>
-            <p>{{ user.email }}</p>
+            <h2>{{ userN }}</h2>
             <button class="edit-profile-button">编辑资料</button>
           </div>
         </div>
@@ -18,7 +17,7 @@
           <li><router-link to="/profile/recommendations">游戏推荐</router-link></li>
           <li><router-link to="/profile/collections">收藏</router-link></li>
           <!-- <li><router-link to="/profile/wishlist">愿望单</router-link></li> -->
-          <li><router-link to="/profile/history">游戏历史与动态</router-link></li>
+          <!-- <li><router-link to="/profile/history">游戏历史与动态</router-link></li> -->
           <li><router-link to="/profile/friends">好友与社交</router-link></li>
           <li><router-link to="/profile/settings">设置与安全</router-link></li>
         </ul>
@@ -34,26 +33,30 @@
 </template>
 
 <script>
+import axios from 'axios'
 import { mapGetters, mapActions } from 'vuex'
 
 export default {
   data () {
     return {
-      videos: [
-        { id: 1, title: '恶魔少爷第二季', thumbnail: 'https://example.com/thumbnail1.jpg' },
-        { id: 2, title: '黑暗', thumbnail: 'https://example.com/thumbnail2.jpg' },
-        { id: 3, title: '解忧杂货店', thumbnail: 'https://example.com/thumbnail3.jpg' }
-      ] // 模拟视频数据
+      videos: [], // 模拟视频数据
+      avatar: [], // 用户头像
+      userN: []
     }
   },
   computed: {
-    ...mapGetters('user', ['userInfo']),
+    ...mapGetters(['userInfo']),
     user () {
       return this.userInfo || {}
     }
   },
+  created () {
+    this.fetchUserAvatar()
+    this.userN = this.user.username
+    console.log(this.userInfo)
+  },
   methods: {
-    ...mapActions('user', ['logout', 'updateAvatar']),
+    ...mapActions(['logout', 'updateAvatar']),
     handleLogout () {
       // 清除本地存储的用户信息和 token
       localStorage.removeItem('user')
@@ -65,6 +68,11 @@ export default {
       // 跳转到首页并刷新页面
       this.$router.push('/')
       window.location.reload()
+    },
+    async fetchUserAvatar () {
+      console.log(this.userInfo.id)
+      const response = await axios.get(`http://127.0.0.1:5000/get_user_avatar?user_id=${this.userInfo.id}`)
+      this.avatar = response.data.avatar
     }
   }
 }

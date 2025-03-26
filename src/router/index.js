@@ -12,12 +12,27 @@ import Friends from '@/views/Friends.vue' // 好友
 import Collections from '@/views/Collections.vue'
 import Settings from '@/views/Settings.vue' // 设置
 import Wishlist from '@/views/Wishlist.vue'
+import GameDetail from '@/views/GameDetail.vue' // 游戏详情
+import NavBar1 from '@/components/NavBar1.vue'
+import Search from '@/views/Search.vue'
 const routes = [
   {
     path: '/',
     name: 'Home',
     component: Home,
     meta: { showNavbar: true }// 显示导航栏
+  },
+  {
+    path: '/search',
+    name: 'Search',
+    component: Search,
+    meta: { showNavbar: false } // 不显示导航栏
+  },
+  {
+    path: '/navbar1',
+    name: 'NavBar1',
+    component: NavBar1,
+    meta: { showNavbar: false }// 显示导航栏
   },
   {
     path: '/about',
@@ -31,12 +46,13 @@ const routes = [
     component: Services,
     meta: { showNavbar: true }// 显示导航栏
   },
-  // {
-  //   path: '/contact',
-  //   name: 'Contact',
-  //   component: Contact,
-  //   meta: { showNavbar: true }// 显示导航栏
-  // },
+  {
+    path: '/gameDetail/:id',
+    name: 'GameDetail',
+    component: GameDetail,
+    props: true,
+    meta: { showNavbar: false } // 不显示导航栏
+  },
   {
     path: '/profile',
     name: 'Profile',

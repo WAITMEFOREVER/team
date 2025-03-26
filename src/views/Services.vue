@@ -4,165 +4,201 @@
     <div class="user-data">
       <h2>我的游戏数据</h2>
       <div class="data-section">
-        <div class="data-card">
+        <div class="data-card game-library">
           <h3>游戏库</h3>
           <ul>
-            <li v-for="game in userGames" :key="game.id">{{ game.name }}</li>
+            <li v-for="game in userGames" :key="game.id">{{ game.game_name }}</li>
           </ul>
         </div>
+
         <div class="data-card">
           <h3>游戏时长</h3>
           <div ref="playtimeChart" style="width: 100%; height: 300px;"></div>
         </div>
+
         <div class="data-card">
           <h3>游戏成就</h3>
           <p>已解锁成就：{{ unlockedAchievements }} / {{ totalAchievements }}</p>
         </div>
+
+        <!-- 游戏类型占比 -->
+        <div class="data-card">
+          <h3>游戏类型占比</h3>
+          <div class="chart-container">
+            <div ref="gameTagsChart" style="width: 100%; height: 400px;"></div>
+          </div>
+        </div>
       </div>
     </div>
-     <!-- 游戏排行榜 -->
-     <div class="game-rank">
+
+    <!-- 游戏排行榜 -->
+    <div class="game-rank">
       <h2>游戏热销榜</h2>
       <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>序号</th>
-            <th>图片</th>
-            <th>游戏名称</th>
-            <th>发布日期</th>
-            <th>价格</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(game, index) in topGames" :key="game.id">
-            <td>{{ index + 1 }}</td>
-            <td><img :src="game.image_url" alt=""></td>
-            <td><a :href="game.link" target="_blank">{{ game.title }}</a></td>
-            <td>{{ game.release_date }}</td>
-            <td>{{ game.price }}</td>
-          </tr>
-        </tbody>
-      </table>
+        <table>
+          <thead>
+            <tr>
+              <th>序号</th>
+              <th>图片</th>
+              <th>游戏名称</th>
+              <th>发布日期</th>
+              <th>价格</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(game, index) in topGames" :key="game.id">
+              <td>{{ index + 1 }}</td>
+              <td><img :src="game.image_url" alt=""></td>
+              <td><a :href="game.link" target="_blank">{{ game.title }}</a></td>
+              <td>{{ game.release_date }}</td>
+              <td>{{ game.price }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    </div>
 
-    <h2 style="padding: 20px;">游戏数据</h2>
-  <div class="chart-container">
-    <!-- 柱状图 -->
-    <div class="chart1 echarts" ref="barChart"></div>
-
-    <!-- 饼图 -->
-    <div class="chart2 echarts" ref="pieChart"></div>
-
-    <!-- 箱线图 -->
-    <div class="chart3 echarts" ref="boxPlot"></div>
-
-     <!-- 树状图 -->
-     <div class="chart4 echarts" ref="treeChart"></div>
-
-    <!-- 热力图 -->
-     <div class="chart5 echarts" ref="heatmapChart"></div>
-
-     <!-- 网络图 -->
-    <div class="chart6 echarts" ref="networkChart"></div>
+    <!-- 好友正在玩的游戏 -->
+    <el-card>
+      <h2>好友正在玩的游戏</h2>
+      <el-table :data="friendGamesList" border style="width: 100%">
+        <el-table-column prop="friend" label="好友 Steam ID" width="200"></el-table-column>
+        <el-table-column prop="game" label="游戏"></el-table-column>
+        <el-table-column prop="hours" label="游戏时长（小时）" width="180"></el-table-column>
+      </el-table>
+    </el-card>
   </div>
-</div>
 </template>
 
 <script>
-import * as echarts from 'echarts'
 import axios from 'axios'
+import * as echarts from 'echarts'
+import { mapState } from 'vuex'
 
 export default {
   name: 'GameRatingChart',
   data () {
     return {
-      userGames: [{
-        id: 1,
-        name: '王者荣耀'
-
-      }], // 用户游戏库
-      unlockedAchievements: 0, // 已解锁成就
-      totalAchievements: 0, // 总成就
-      playtimeData: [], // 游戏时长数据
-      topGames: [] // 游戏排行榜数据
+      userGames: [],
+      playtimeData: [],
+      unlockedAchievements: 0,
+      totalAchievements: 0,
+      topGames: [],
+      gameTagsData: [],
+      friendGamesList: [],
+      playtimeChart: null, // ECharts 实例
+      gameTagsChart: null // ECharts 实例
     }
   },
-  mounted () {
-    this.initBarChart()
-    this.initPieChart()
-    this.initBoxPlot()
-    this.initTreeChart()
-    this.initHeatmapChart()
-    this.initNetworkChart()
-    // this.fetchUserData()// 获取用户数据
-    this.fetchTopGames() // 获取游戏排行榜数据
-    // 响应式处理
-    window.addEventListener('resize', this.resizeCharts)
+  computed: {
+    ...mapState(['user'])
   },
-  beforeUnmount () { // 改为 beforeUnmount
-    // 移除事件监听
-    window.removeEventListener('resize', this.resizeCharts)
+  async mounted () {
+    try {
+      await this.fetchUserData()
+      await this.fetchGameTags()
+      await this.fetchTopGames()
+      await this.fetchFriendGames()
+      this.initCharts() // 初始化图表
+      window.addEventListener('resize', this.resizeCharts) // 绑定 resize 事件
+    } catch (error) {
+      console.error('Failed to initialize component:', error)
+    }
+  },
+  beforeUnmount () {
+    window.removeEventListener('resize', this.resizeCharts) // 解绑 resize 事件
+    if (this.playtimeChart) this.playtimeChart.dispose() // 销毁图表实例
+    if (this.gameTagsChart) this.gameTagsChart.dispose() // 销毁图表实例
   },
   methods: {
-    // 初始化柱状图
-    initBarChart () {
-      this.barChart = echarts.init(this.$refs.barChart)
+    async fetchUserData () {
+      try {
+        const steamId = this.user?.steam_id // 确保 steamId 存在
+        console.log('steamId', steamId)
+        const token = localStorage.getItem('token') // 获取 JWT Token
+        console.log('token', token)
 
+        if (!steamId) {
+          console.error('steam_id 为空')
+          return
+        }
+
+        if (!token) {
+          console.error('没有找到 Token，请先登录')
+          return
+        }
+        const response = await axios.get('http://127.0.0.1:5000/user-data', {
+          params: { steam_id: steamId }, // 确保参数格式正确
+          headers: { Authorization: `Bearer ${token}` }
+        })
+
+        const data = response.data
+        this.userGames = data.userGames
+        this.playtimeData = data.playtimeData
+        this.unlockedAchievements = data.achievements.unlocked
+        this.totalAchievements = data.achievements.total
+      } catch (error) {
+        // console.log('token', this.token)
+        console.error('获取用户数据失败:', error.response?.data || error)
+      }
+    },
+    async fetchGameTags () {
+      try {
+        const response = await axios.get(`http://127.0.0.1:5000/game-tags/${this.user.steam_id}`)
+        this.gameTagsData = response.data
+      } catch (error) {
+        console.error('获取游戏标签数据失败:', error)
+      }
+    },
+    async fetchTopGames () {
+      try {
+        const response = await axios.get('http://127.0.0.1:5000/topgames')
+        this.topGames = response.data
+      } catch (error) {
+        console.error('获取游戏排行榜失败:', error)
+      }
+    },
+    initCharts () {
+      this.initPlaytimeChart()
+      this.initGameTagsChart()
+    },
+    initPlaytimeChart () {
+      if (!this.$refs.playtimeChart || this.playtimeData.length === 0) return
+      this.playtimeChart = echarts.init(this.$refs.playtimeChart)
       const option = {
-        title: {
-          text: '游戏评分分布（柱状图）',
-          left: 'center',
-          textStyle: {
-            color: 'white' // 标题颜色
-          }
-        },
+        title: { text: '游戏时长（小时）', left: 'center' },
         tooltip: {},
         xAxis: {
           type: 'category',
-          data: ['0-1', '2-3', '4-5', '6-7', '8-9', '10']
+          data: this.playtimeData.map(game => game.name)
         },
-        yAxis: {
-          type: 'value'
-        },
+        yAxis: { type: 'value' },
         series: [
           {
-            data: [1, 4, 5, 10, 15, 20], // 根据实际数据修改
-            type: 'bar'
+            name: '游戏时长',
+            type: 'bar',
+            data: this.playtimeData.map(game => game.playtime),
+            itemStyle: { color: '#5470c6' }
           }
         ]
       }
-
-      this.barChart.setOption(option)
+      this.playtimeChart.setOption(option)
     },
-
-    // 初始化饼图
-    initPieChart () {
-      this.pieChart = echarts.init(this.$refs.pieChart)
-
+    initGameTagsChart () {
+      if (!this.$refs.gameTagsChart || this.gameTagsData.length === 0) return
+      this.gameTagsChart = echarts.init(this.$refs.gameTagsChart)
       const option = {
-        title: {
-          text: '游戏评分分布（饼图）',
-          left: 'center',
-          textStyle: {
-            color: 'white' // 标题颜色
-          }
-        },
-        tooltip: {
-          trigger: 'item',
-          formatter: '{a} <br/>{b}: {c} ({d}%)'
-        },
+        title: { text: '游戏类型占比', left: 'center' },
+        tooltip: { trigger: 'item' },
         series: [
           {
-            name: '评分',
+            name: '游戏类型',
             type: 'pie',
-            radius: '50%',
-            data: [
-              { value: 35, name: '好评' },
-              { value: 25, name: '中评' },
-              { value: 40, name: '差评' }
-            ], // 根据实际数据修改
+            radius: '60%',
+            data: this.gameTagsData.map(tag => ({
+              name: tag.tag,
+              value: tag.count
+            })),
             emphasis: {
               itemStyle: {
                 shadowBlur: 10,
@@ -173,291 +209,33 @@ export default {
           }
         ]
       }
-
-      this.pieChart.setOption(option)
+      this.gameTagsChart.setOption(option)
     },
-    // 初始化箱线图
-    initBoxPlot () {
-      const boxPlot = echarts.init(this.$refs.boxPlot)
-
-      const option = {
-        title: {
-          text: '游戏价格分布（箱线图）',
-          left: 'center',
-          textStyle: {
-            color: 'white' // 标题颜色
-          }
-        },
-        tooltip: {
-          trigger: 'item'
-        },
-        xAxis: {
-          type: 'category',
-          data: ['游戏价格']
-        },
-        yAxis: {
-          type: 'value'
-        },
-        series: [
-          {
-            name: '价格',
-            type: 'boxplot',
-            data: [
-              [30, 50, 100, 200, 500] // 最低值、第一四分位数、中位数、第三四分位数、最大值（你可以根据实际数据调整）
-            ],
-            tooltip: {
-              formatter: function (param) {
-                return [
-                  '最低: ' + param.data[0],
-                  '第一四分位数: ' + param.data[1],
-                  '中位数: ' + param.data[2],
-                  '第三四分位数: ' + param.data[3],
-                  '最大值: ' + param.data[4]
-                ].join('<br/>')
-              }
-            }
-          }
-        ]
-      }
-
-      boxPlot.setOption(option)
-    },
-    // 初始化树状图
-    initTreeChart () {
-      const treeChart = echarts.init(this.$refs.treeChart)
-
-      const option = {
-        title: {
-          text: '游戏类型占比（树状图）',
-          left: 'center',
-          textStyle: {
-            color: 'white'
-          }
-        },
-        tooltip: {
-          trigger: 'item',
-          formatter: '{b}: {c} ({d}%)'// 展示类型名称、数量、百分比
-        },
-        series: [
-          {
-            type: 'tree',
-            name: '游戏类型',
-            data: [
-              {
-                name: '全部游戏',
-                children: [
-                  {
-                    name: '动作类',
-                    value: 100,
-                    children: [
-                      { name: '射击游戏', value: 60 },
-                      { name: '格斗游戏', value: 40 }
-                    ]
-                  },
-                  {
-                    name: '策略类',
-                    value: 80,
-                    children: [
-                      { name: '即时战略', value: 50 },
-                      { name: '回合制策略', value: 30 }
-                    ]
-                  },
-                  {
-                    name: '角色扮演',
-                    value: 120,
-                    children: [
-                      { name: '冒险类', value: 70 },
-                      { name: '模拟类', value: 50 }
-                    ]
-                  }
-                ]
-              }
-            ],
-            top: '10%',
-            left: '10%',
-            bottom: '10%',
-            right: '10%',
-            symbolSize: 15,
-            lineStyle: {
-              width: 2,
-              color: '#aaa'
-            },
-            label: {
-              position: 'right',
-              formatter: '{b}',
-              fontSize: 12,
-              color: 'white'
-            },
-            emphasis: {
-              focus: 'descendant',
-              itemStyle: {
-                color: '#ff7f50'
-              }
-            }
-          }
-        ]
-      }
-
-      treeChart.setOption(option)
-    },
-    // 生成模拟热力图数据
-    generateHeatmapData () {
-      const data = []
-      for (let i = 0; i < 24; i++) { // 小时 (X轴)
-        for (let j = 0; j < 7; j++) { // 星期 (Y轴)
-          data.push([i, j, Math.floor(Math.random() * 100)]) // 模拟玩家活跃度
-        }
-      }
-      return data
-    },
-
-    // 初始化热力图
-    initHeatmapChart () {
-      const heatmapChart = echarts.init(this.$refs.heatmapChart)
-
-      const option = {
-        title: {
-          text: '游戏玩家活力图（热力图）',
-          left: 'center',
-          textStyle: {
-            color: 'white'
-          }
-        },
-        tooltip: {
-          position: 'top',
-          formatter: (params) => {
-            return `时间: ${params.data[0]}点, 星期${params.data[1] + 1} <br> 活跃度: ${params.data[2]}`
-          }
-        },
-        grid: {
-          top: '10%',
-          left: '5%',
-          right: '5%',
-          bottom: '5%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: Array.from({ length: 24 }, (_, i) => `${i}:00`), // X轴：24小时制
-          boundaryGap: true, // 设置 boundaryGap 为 true
-          axisLine: { lineStyle: { color: '#bbb' } }
-        },
-        yAxis: {
-          type: 'category',
-          data: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'], // Y轴：星期
-          boundaryGap: true, // 设置 boundaryGap 为 true
-          axisLine: { lineStyle: { color: '#bbb' } }
-        },
-        visualMap: {
-          min: 0,
-          max: 100,
-          calculable: true,
-          orient: 'horizontal',
-          left: 'center',
-          bottom: '0%',
-          inRange: { color: ['#ffffff', '#fdae61', '#d73027'] } // 颜色从白色到红色
-        },
-        series: [
-          {
-            name: '活跃度',
-            type: 'heatmap',
-            data: this.generateHeatmapData(),
-            label: {
-              show: false // 关闭标签显示
-            },
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
-              }
-            }
-          }
-        ]
-      }
-
-      heatmapChart.setOption(option)
-      this.heatmapChart = heatmapChart
-    },
-    // 初始化网络图
-    initNetworkChart () {
-      const networkChart = echarts.init(this.$refs.networkChart)
-
-      const option = {
-        title: {
-          text: '游戏推荐关系图',
-          left: 'center',
-          textStyle: {
-            color: 'white'
-          }
-        },
-        tooltip: {
-          formatter: (params) => {
-            if (params.dataType === 'node') {
-              return `${params.data.name}` // 显示节点游戏名
-            }
-            return `${params.data.source} → ${params.data.target}` // 显示边的关系
-          }
-        },
-        series: [
-          {
-            type: 'graph',
-            layout: 'force', // 使用力导向图布局
-            symbolSize: 50,
-            roam: true, // 允许拖动
-            edgeSymbol: ['none', 'arrow'],
-            edgeSymbolSize: [4, 10],
-            edgeLabel: {
-              show: true,
-              formatter: (params) => {
-                return `${params.data.source} → ${params.data.target}`
-              }
-            },
-            data: [
-              { name: '游戏A', category: 0 },
-              { name: '游戏B', category: 0 },
-              { name: '游戏C', category: 1 },
-              { name: '游戏D', category: 1 },
-              { name: '游戏E', category: 2 }
-            ],
-            links: [
-              { source: '游戏A', target: '游戏B' },
-              { source: '游戏A', target: '游戏C' },
-              { source: '游戏B', target: '游戏D' },
-              { source: '游戏C', target: '游戏E' }
-            ],
-            categories: [
-              { name: '动作类' },
-              { name: '冒险类' },
-              { name: '角色扮演类' }
-            ],
-            lineStyle: {
-              color: 'source',
-              curveness: 0.3
-            }
-          }
-        ]
-      }
-
-      networkChart.setOption(option)
-      this.networkChart = networkChart
-    },
-
-    // 响应式调整图表大小
     resizeCharts () {
-      if (this.barChart) this.barChart.resize()
-      if (this.pieChart) this.pieChart.resize()
-      if (this.boxPlot) this.boxPlot.resize()
-      if (this.treeChart) this.treeChart.resize()
-      if (this.heatmapChart) this.heatmapChart.resize()
-      if (this.networkChart) this.networkChart.resize()
+      if (this.playtimeChart) this.playtimeChart.resize()
+      if (this.gameTagsChart) this.gameTagsChart.resize()
     },
-    async fetchTopGames () {
+    // 获取好友游戏数据
+    async fetchFriendGames () {
       try {
-        const response = await axios.get('http://127.0.0.1:5000/topgames')
-        this.topGames = response.data
+        const steamId = this.user.steam_id
+        console.log('获取好友游戏数据', steamId)
+        const response = await axios.get(`http://127.0.0.1:5000/friend_games/${steamId}`)
+        const data = response.data
+
+        const gamesList = []
+        for (const friend in data) {
+          data[friend].forEach((game) => {
+            gamesList.push({
+              friend,
+              game: game.name,
+              hours: game.playtime_hours
+            })
+          })
+        }
+        this.friendGamesList = gamesList // 修复响应式问题
       } catch (error) {
-        console.error('获取游戏排行榜失败:', error)
-        console.error('错误详情:', error.response)
+        console.error('获取好友游戏数据失败', error)
       }
     }
   }
@@ -465,17 +243,12 @@ export default {
 </script>
 
 <style scoped>
-.services{
+.services {
   background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0)), url('../assets/wallhaven-rrl1kj.jpg');
   background-size: cover;
   background-position: center;
 }
-.chart-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  width: 100%;
-}
+
 .user-data {
   background: rgba(255, 255, 255, 0.1);
   padding: 20px;
@@ -484,7 +257,7 @@ export default {
 
 .data-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
   gap: 20px;
 }
 
@@ -492,21 +265,34 @@ export default {
   background: rgba(255, 255, 255, 0.1);
   padding: 15px;
   border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 水平居中 */
 }
+
+.game-library ul {
+  max-height: 230px;
+  overflow-y: auto;
+  padding: 10px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 .game-rank {
   background: rgba(255, 255, 255, 0.1);
   padding: 20px;
   border-radius: 10px;
   margin-top: 20px;
 }
+
 h2 {
   color: white;
   margin-bottom: 15px;
 }
 
 .table-container {
-  max-height: 400px; /* 设置表格容器的最大高度 */
-  overflow-y: auto;  /* 允许垂直滚动 */
+  max-height: 420px;
+  overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
 }
@@ -515,9 +301,11 @@ table {
   width: 100%;
   border-collapse: collapse;
 }
-thead th{
+
+thead th {
   background-color: #626262;
 }
+
 th, td {
   padding: 12px 15px;
   text-align: left;
@@ -527,9 +315,9 @@ th, td {
 
 th {
   background-color: rgba(255, 255, 255, 0.2);
-  position: sticky; /* 表头固定 */
-  top: 0;          /* 表头固定在顶部 */
-  z-index: 1;      /* 确保表头在最上层 */
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 td img {
@@ -540,7 +328,7 @@ td img {
 }
 
 a {
-  color: #42b983; /* 链接颜色 */
+  color: #42b983;
   text-decoration: none;
 }
 
@@ -548,7 +336,6 @@ a:hover {
   text-decoration: underline;
 }
 
-/* 滚动条样式 */
 .table-container::-webkit-scrollbar {
   width: 8px;
 }
@@ -576,12 +363,12 @@ li {
   color: white;
   margin: 5px 0;
 }
-.echarts {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 600px;
+
+.chart-container {
   width: 100%;
-  margin-top:20px ;
+  height: 100%;
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  align-items: center; /* 垂直居中 */
 }
 </style>

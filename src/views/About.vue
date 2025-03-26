@@ -49,25 +49,28 @@
       <h2>游戏推荐</h2>
       <!-- 筛选按钮 -->
       <div class="filter-buttons">
-        <el-button type="text" @click="filterGames('全部')">全部</el-button>
-        <el-button type="text" @click="filterGames('动作')">动作</el-button>
-        <el-button type="text" @click="filterGames('冒险')">冒险</el-button>
-        <el-button type="text" @click="filterGames('射击')">射击</el-button>
-        <el-button type="text" @click="filterGames('角色扮演')">角色扮演</el-button>
-        <el-button type="text" @click="filterGames('策略')">策略</el-button>
-        <el-button type="text" @click="filterGames('体育')">体育</el-button>
+        <el-button type="text" @click="filterGames('all')">全部</el-button>
+        <el-button type="text" @click="filterGames('Action')">动作</el-button>
+        <el-button type="text" @click="filterGames('RPG')">角色扮演</el-button>
+        <el-button type="text" @click="filterGames('Adventure')">冒险</el-button>
+        <el-button type="text" @click="filterGames('Simulation')">模拟</el-button>
+        <el-button type="text" @click="filterGames('Indie')">独立</el-button>
+        <el-button type="text" @click="filterGames('Casual')">休闲</el-button>
         <el-button type="text" @click="shuffleGames">换一换</el-button>
       </div>
 
       <!-- 游戏展示 -->
       <div class="card-container">
-          <div class="card" v-for="(game, index) in filteredGames" :key="index">
-            <img :src="game.image" alt="Game Cover" class="card-image">
+          <div
+          class="card"
+          v-for="(game, index) in displayedGames" :key="index"
+          @click="goToGameDetail(game.game_id)">
+            <img :src="game.image_url" alt="Game Cover" class="card-image">
             <div class="card-content">
               <h3 class="game-title">{{ game.title }}</h3>
-              <p class="game-rating">评分: {{ game.rating }}</p>
-              <p class="game-description">{{ game.description }}</p>
-              <button class="download">立即下载</button>
+              <p class="game-rating">价格: {{ game.price }}</p>
+              <p class="game-description">类型{{ game.genre }}</p>
+              <button class="download" @click.stop="downloadGame (game.link)">立即下载</button>
             </div>
           </div>
         </div>
@@ -75,28 +78,38 @@
 
     <!-- 为你推荐 -->
     <div class="recommendation">
-      <h2>为你推荐</h2>
-      <div class="filter-buttons">
-        <el-button type="text" @click="filterRecommendations('全部')">全部</el-button>
-        <el-button type="text" @click="filterRecommendations('科幻')">科幻</el-button>
-        <el-button type="text" @click="filterRecommendations('都市生活')">都市生活</el-button>
-        <el-button type="text" @click="filterRecommendations('武侠江湖')">武侠江湖</el-button>
-        <el-button type="text" @click="filterRecommendations('真实事件改编')">真实事件改编</el-button>
-        <el-button type="text" @click="filterRecommendations('原创动画')">原创动画</el-button>
-        <el-button type="text" @click="filterRecommendations('奇幻冒险')">奇幻冒险</el-button>
-        <el-button type="text" @click="filterRecommendations('东方仙侠')">东方仙侠</el-button>
-        <el-button type="text" @click="filterRecommendations('古装爱情')">古装爱情</el-button>
-        <el-button type="text" @click="filterRecommendations('更多')">更多</el-button>
-      </div>
-      <!-- 推荐展示 -->
+      <h2 style="display: inline-block;">为你推荐</h2>
+      <el-button style="display: inline-block;margin-left: 76%;" type="text" @click="getRandomGames3">换一换</el-button>
       <div class="card-container">
-          <div class="card" v-for="(item, index) in filteredRecommendations" :key="index">
-            <img :src="item.image" alt="recommendation" class="card-image">
+          <div
+          class="card"
+          v-for="(item) in personalizedGame" :key="item.id"
+          @click="goToGameDetail(item.game_id)">
+            <img :src="item.image_url" alt="recommendation" class="card-image">
             <div class="card-content">
-              <h3 class="game-title">{{ item.title }}</h3>
-              <p class="game-rating">评分: {{ item.rating }}</p>
-              <p class="game-description">{{ item.description }}</p>
-              <button class="download">立即下载</button>
+              <h3 class="game-title">{{ item.name }}</h3>
+              <p class="game-rating">推荐人数: {{ item.total_reviews }}</p>
+              <p class="game-description">{{ item.short_description }}</p>
+              <button class="download" @click.stop="downloadGame (item.store_url)">立即下载</button>
+            </div>
+          </div>
+        </div>
+    </div>
+    <!-- 免费推荐 -->
+    <div class="recommendation">
+      <h2 style="display: inline-block;">免费专区</h2>
+      <el-button style="display: inline-block;margin-left: 76%;" type="text" @click="getRandomGames2">换一换</el-button>
+      <div class="card-container">
+          <div
+          class="card"
+          v-for="(item) in freeGame" :key="item.id"
+          @click="goToGameDetail(item.game_id)">
+            <img :src="item.image_url" alt="recommendation" class="card-image">
+            <div class="card-content">
+              <h3 class="game-title">{{ item.name }}</h3>
+              <p class="game-rating">推荐人数: {{ item.total_reviews }}</p>
+              <p class="game-description">{{ item.short_description }}</p>
+              <button class="download" @click.stop="downloadGame (item.store_url)">立即下载</button>
             </div>
           </div>
         </div>
@@ -105,6 +118,8 @@
 </template>
 
 <script>
+import axios from 'axios'
+import { mapState } from 'vuex'
 export default {
   data () {
     return {
@@ -113,64 +128,91 @@ export default {
       games: [
         {
           id: 1,
-          name: '忍者必须死3',
-          video: require('@/assets/game1.mp4'),
+          name: 'Counter-Strike 2',
+          video: 'http://video.akamai.steamstatic.com/store_trailers/256972298/movie_max_vp9.webm?t=1696005467',
           thumbnail:
-            'https://img1.baidu.com/it/u=1825588794,1142855539&fm=253&fmt=auto&app=120&f=JPEG?w=889&h=500/200x200?text=Game+1',
-          downloadLink: 'https://example.com/download/game1' // 游戏的下载链接
+            'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/header.jpg?t=1729703045?w=889&h=500/200x200?text=Game+1',
+          downloadLink: 'https://store.steampowered.com/app/730' // 游戏的下载链接
         },
         {
           id: 2,
-          name: '高爆射击战',
-          video: require('@/assets/game2.mp4'),
+          name: 'Grand Theft Auto V Legacy',
+          video: 'http://video.akamai.steamstatic.com/store_trailers/257109786/movie_max_vp9.webm?t=1741119978", "http://video.akamai.steamstatic.com/store_trailers/257083901/movie_max_vp9.webm?t=1734717936',
           thumbnail:
-            'https://img2.baidu.com/it/u=115549207,88011968&fm=253&fmt=auto&app=120&f=JPEG?w=889&h=500/200x200?text=Game+2',
-          downloadLink: 'https://example.com/download/game2' // 游戏的下载链接
-        },
-        {
+            'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/271590/header.jpg?t=1741120008?w=889&h=500/200x200?text=Game+2',
+          downloadLink: 'https://store.steampowered.com/app/271590' // 游戏的下载链接
+        }, {
           id: 3,
-          name: '冒险传奇',
-          video: require('@/assets/game3.mp4'),
+          name: 'Terraria',
+          video: 'http://video.akamai.steamstatic.com/store_trailers/256785003/movie_max_vp9.webm?t=1589654781", "http://video.akamai.steamstatic.com/store_trailers/2040428/movie_max.webm?t=1447376855',
           thumbnail:
-            'https://img1.baidu.com/it/u=2195067030,2402272843&fm=253&fmt=auto&app=120&f=JPEG?w=800&h=500/200x200?text=Game+3',
-          downloadLink: 'https://example.com/download/game3' // 游戏的下载链接
+            'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/105600/header.jpg?t=1731252354?w=800&h=500/200x200?text=Game+3',
+          downloadLink: 'https://store.steampowered.com/app/105600' // 游戏的下载链接
         }
       ],
-      Games: [
-        { title: '游戏1', image: 'https://via.placeholder.com/150', rating: 8.9, category: '动作', description: '游戏1描述....................................................................' },
-        { title: '游戏2', image: 'https://via.placeholder.com/150', rating: 9.4, category: '动作' },
-        { title: '游戏3', image: 'https://via.placeholder.com/150', rating: 8.7, category: '动作' },
-        { title: '游戏4', image: 'https://via.placeholder.com/150', rating: 9.1, category: '动作' },
-        { title: '游戏5', image: 'https://via.placeholder.com/150', rating: 8.8, category: '冒险' },
-        { title: '游戏6', image: 'https://via.placeholder.com/150', rating: 8.5, category: '动作' },
-        { title: '游戏7', image: 'https://via.placeholder.com/150', rating: 8.6, category: '冒险' },
-        { title: '游戏8', image: 'https://via.placeholder.com/150', rating: 8.9, category: '动作' }
-      ],
-      recommendations: [
-        { title: '科幻', image: 'https://via.placeholder.com/150', rating: 8.9, category: '科幻' },
-        { title: '都市生活', image: 'https://via.placeholder.com/150', rating: 8.7, category: '都市生活' },
-        { title: '武侠江湖', image: 'https://via.placeholder.com/150', rating: 8.8, category: '武侠江湖' },
-        { title: '真实事件改编', image: 'https://via.placeholder.com/150', rating: 8.9, category: '真实事件改编' },
-        { title: '原创动画', image: 'https://via.placeholder.com/150', rating: 8.6, category: '原创动画' },
-        { title: '奇幻冒险', image: 'https://via.placeholder.com/150', rating: 8.7, category: '奇幻冒险' },
-        { title: '东方仙侠', image: 'https://via.placeholder.com/150', rating: 8.8, category: '东方仙侠' },
-        { title: '古装爱情', image: 'https://via.placeholder.com/150', rating: 8.9, category: '古装爱情' }
-      ],
-      filteredGames: [],
-      filteredRecommendations: []
+      Games: [], // 所有游戏数据
+      filteredGames: [], // 筛选后的游戏数据
+      displayedGames: [], // 最终渲染的游戏
+      gamesPerRow: 6, // 每行游戏个数（默认）
+      personalizedGames: [], // 个性化推荐游戏数据
+      personalizedGame: [], // 个性化推荐游戏数据
+      freeGames: [], // 免费游戏数据
+      freeGame: [], // 免费游戏数据
+      filterediltRecommendations: []
     }
   },
   created () {
-    this.filteredGames = this.Games
-    this.filteredRecommendations = this.recommendations
+    this.fetchHotTopGames()
+    this.fetchRecommendedGames()
+    this.fetchFreeGames()
   },
   computed: {
+    ...mapState(['user']), // 从 Vuex Store 中获取用户信息
     // 当前播放的视频对象
     currentGame () {
       return this.games[this.currentGameIndex]
+    },
+    // 最大显示游戏数
+    maxGamesToShow () {
+      return this.gamesPerRow * 3// 计算最大显示游戏数（3 行）
     }
   },
   methods: {
+    async fetchHotTopGames () {
+      try {
+        const response = await axios.get('http://127.0.0.1:5000/topgames')
+        this.Games = response.data
+        this.filteredGames = this.Games
+        this.shuffleGames() // 随机排序
+        // console.log(this.Games)
+      } catch (error) {
+        console.error('获取游戏排行榜失败:', error)
+        console.error('错误详情:', error.response)
+      }
+    },
+    async fetchRecommendedGames () {
+      try {
+        const steamId = this.user.steam_id
+        const response = await axios.get(`http://127.0.0.1:5000/recommend/${steamId}`)
+        this.personalizedGames = response.data.recommendations
+        this.getRandomGames3()// 调用随机选择方法
+        console.log(this.personalizedGames)
+      } catch (error) {
+        console.error('获取推荐游戏失败:', error)
+        console.error('错误详情:', error.response)
+      }
+    },
+    async fetchFreeGames () {
+      try {
+        const response = await axios.get('http://127.0.0.1:5000/freegames')
+        this.freeGames = response.data.free_games
+        this.getRandomGames2()// 调用随机选择方法
+        // console.log(this.freeGames)
+      } catch (error) {
+        console.error('获取推荐游戏失败:', error)
+        console.error('错误详情:', error.response)
+      }
+    },
     // 切换静音状态
     toggleMute () {
       this.isMuted = !this.isMuted
@@ -194,18 +236,60 @@ export default {
         }
       })
     },
+    goToGameDetail (gameId) {
+      const routeData = this.$router.resolve({ name: 'GameDetail', params: { id: gameId } })
+      window.open(routeData.href, '_blank') // 在新标签页打开
+    },
     // 打开游戏的下载链接
     downloadGame (link) {
       window.open(link, '_blank') // 打开游戏下载链接（在新标签页中）
     },
-    // 过滤热播
-    filterGames (category) {
-      if (category === '全部') {
+    filterGames (genre) {
+      if (genre === 'all') {
         this.filteredGames = this.Games
       } else {
-        this.filteredGames = this.Games.filter(item => item.category === category)
+        this.filteredGames = this.Games.filter(item =>
+          item.genre && item.genre.toLowerCase().includes(genre.toLowerCase())
+        )
+      }
+      this.shuffleGames() // 每次筛选后随机选择展示
+    },
+    // 随机选择 3 行的游戏
+    shuffleGames () {
+      if (this.filteredGames.length <= this.maxGamesToShow) {
+        this.displayedGames = [...this.filteredGames] // 如果游戏数量少于可展示的数量，就全部展示
+      } else {
+        const shuffled = [...this.filteredGames].sort(() => Math.random() - 0.5)
+        this.displayedGames = shuffled.slice(0, this.maxGamesToShow)
       }
     },
+    getRandomGames3 () {
+      if (this.personalizedGames.length <= this.maxGamesToShow) {
+        this.personalizedGame = [...this.personalizedGames]
+      } else {
+        const shuffled = [...this.personalizedGames].sort(() => Math.random() - 0.5)
+        this.personalizedGame = shuffled.slice(0, this.maxGamesToShow)
+      }
+    },
+    getRandomGames2 () {
+      if (this.freeGames.length <= this.maxGamesToShow) {
+        this.freeGame = [...this.freeGames]
+      } else {
+        const shuffled = [...this.freeGames].sort(() => Math.random() - 0.5)
+        this.freeGame = shuffled.slice(0, this.maxGamesToShow)
+      }
+    },
+
+    // 计算当前屏幕每行能显示多少游戏
+    updateGamesPerRow () {
+      const cardWidth = 220 // 每张卡片宽度
+      const containerWidth = document.querySelector('.card-container')?.clientWidth || window.innerWidth
+      this.gamesPerRow = Math.max(1, Math.floor(containerWidth / cardWidth)) // 至少 1 个
+      this.shuffleGames() // 更新后重新随机选择
+      this.getRandomGames3() // 更新后重新随机选择
+      this.getRandomGames2() // 更新后重新随机选择
+    },
+
     filterRecommendations (category) {
       if (category === '全部') {
         this.filteredRecommendations = this.recommendations
@@ -213,6 +297,16 @@ export default {
         this.filteredRecommendations = this.recommendations.filter(item => item.category === category)
       }
     }
+  },
+  mounted () {
+    this.fetchHotTopGames()
+    this.fetchRecommendedGames()
+    this.fetchFreeGames()
+    this.updateGamesPerRow()
+    window.addEventListener('resize', this.updateGamesPerRow)
+  },
+  beforeUnmount () {
+    window.removeEventListener('resize', this.updateGamesPerRow)
   }
 }
 </script>
@@ -260,6 +354,10 @@ export default {
   font-size: 12px;
   text-align: center;
   padding: 5px 0;
+  width: 80px; /* 设置元素宽度，以便观察换行效果 */
+  padding: 10px;
+  overflow-wrap: break-word; /* 允许长单词换行到下一行 */
+  word-break: break-word; /* 单词内换行 */
 }
 .thumbnail-item {
   cursor: pointer;
@@ -335,6 +433,7 @@ export default {
   text-align: center;
 }
 
+/* 游戏标题 */
 .game-title {
   font-size: 18px;
   font-weight: bold;
@@ -346,14 +445,6 @@ export default {
   font-size: 14px;
   color: #777;
   margin-bottom: 15px;
-}
-
-/* 游戏标题 */
-.game-title {
-  font-size: 16px;
-  font-weight: bold;
-  margin: 10px 0;
-  color: #fff;
 }
 
 /* 游戏评分 */

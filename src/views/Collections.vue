@@ -20,12 +20,12 @@
     <div v-if="loading" class="loading">加载中...</div>
     <div v-else>
       <div v-if="filteredGames.length > 0" class="game-list">
-        <div v-for="game in filteredGames" :key="game.id" class="game-item">
-          <img :src="game.img_logo_url" alt="游戏封面" class="game-thumbnail" @click="viewGameDetail(game.id)" />
+        <div v-for="game in filteredGames" :key="game.id" class="game-item" @click="viewGameDetail(game.id)">
+          <img :src="game.img_icon_url" alt="游戏封面" class="game-thumbnail"  />
           <div class="game-info">
             <h3 @click="viewGameDetail(game.id)">{{ game.name }}</h3>
             <div class="game-meta">
-              <span>是否付费: {{ game.is_free }}/10</span>
+              <span>是否付费: {{ game.is_free }}</span>
               <span>游戏时长: {{ game.playtime_forever }}</span>
             </div>
             <button @click="removeFromCollection(game.id)" class="remove-button">
@@ -109,7 +109,7 @@ export default {
     },
     viewGameDetail (gameId) {
       // 跳转到游戏详情页
-      this.$router.push(`/game/${gameId}`)
+      this.$router.push(`/gameDetail/${gameId}`)
     },
     async removeFromCollection (gameId) {
       try {

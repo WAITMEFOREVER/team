@@ -146,11 +146,25 @@ export default {
         if (response.data.success) {
           alert('密码修改成功！')
           this.password = { current: '', new: '', confirm: '' }
+          this.handleLogout()
         }
       } catch (error) {
         console.error('修改密码失败:', error)
         alert('修改密码失败，请重试。')
       }
+    },
+    // 处理退出登录
+    handleLogout () {
+      // 清除本地存储的用户信息和 token
+      localStorage.removeItem('user')
+      localStorage.removeItem('token')
+
+      // 清除 Vuex 中的用户信息和 token
+      this.$store.commit('setUser', null)
+      this.$store.commit('setToken', null)
+
+      // 刷新页面，重新初始化应用状态
+      window.location.reload()
     },
     async linkAccount (accountType) {
       try {
